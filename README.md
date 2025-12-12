@@ -50,6 +50,11 @@ You are free to use, modify, and distribute it with attribution.
 ---
 
 ## 👨‍💻 Author  
+## 👨‍💻 Author  
+
+[![Author Badge](https://img.shields.io/badge/Author-Abdul%20Aziz-blue?style=for-the-badge)](https://github.com/your-github-username)
+![Role](https://img.shields.io/badge/Data%20Science-Engineer-purple?style=for-the-badge)
+
 **Abdul Aziz**  
 NEW JERSEY INSTITUTE OF TECHNOLOGY - MS IN COMPUTER SCIENCE 
 Passionate about building real-world software and data-driven solutions.
