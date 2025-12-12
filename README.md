@@ -44,6 +44,6 @@ A full-stack **Flask + MySQL** application for managing academic research lab da
 
 ---
 
-## 📦 Project Structure
+
 
 
