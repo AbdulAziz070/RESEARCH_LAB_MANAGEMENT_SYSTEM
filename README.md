@@ -43,6 +43,22 @@ A full-stack **Flask + MySQL** application for managing academic research lab da
 | Tools | PowerShell, CMD, SQL Utilities |
 
 ---
+## 📜 License  
+This project is licensed under the **MIT License**.  
+You are free to use, modify, and distribute it with attribution.
+
+---
+
+## 👨‍💻 Author  
+**Abdul Aziz**  
+NEW JERSEY INSTITUTE OF TECHNOLOGY - MS IN COMPUTER SCIENCE 
+Passionate about building real-world software and data-driven solutions.
+
+---
+
+## ⭐ Support  
+If you like this project, consider giving it a **star ⭐ on GitHub**!  
+It helps others discover it and supports future updates.
 
 
 
