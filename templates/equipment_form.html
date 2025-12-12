@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-title">
+      {% if mode == "edit" and equipment %} Edit Equipment {% else %} Add Equipment {% endif %}
+    </h3>
+
+    {# When editing, app likely calls a different route; this template just posts to current URL #}
+    <form method="post" action="">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Equipment ID (EID) — optional</label>
+          {% if mode == "edit" and equipment %}
+            <input type="text" name="eid" class="form-control" value="{{ equipment[0] }}" readonly>
+          {% else %}
+            <input type="text" name="eid" class="form-control" placeholder="Leave blank to auto-generate">
+          {% endif %}
+        </div>
+
+        <div class="col-md-5">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" class="form-control" value="{{ equipment[1] if equipment else '' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Type</label>
+          <input type="text" name="etype" class="form-control" value="{{ equipment[2] if equipment else '' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            {% set st = equipment[3] if equipment else 'Active' %}
+            <option value="Active" {% if st == 'Active' %}selected{% endif %}>Active</option>
+            <option value="Maintenance" {% if st == 'Maintenance' %}selected{% endif %}>Maintenance</option>
+            <option value="Retired" {% if st == 'Retired' %}selected{% endif %}>Retired</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit">{% if mode == "edit" and equipment %} Save Changes {% else %} Add Equipment {% endif %}</button>
+        <a href="{{ url_for('equipment') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

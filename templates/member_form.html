@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-title">
+      {% if mode == "edit" %} Edit Member {% else %} Add New Member {% endif %}
+    </h3>
+
+    {# For edit, route is /members/edit/<mid> so template is rendered by server with proper URL.
+       For add, route is /members/add. #}
+    <form method="post" class="mt-3" action="">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Member ID (MID) — optional</label>
+          {# if editing, show MID as readonly so user won't change primary key accidentally #}
+          {% if mode == "edit" and member %}
+            <input type="text" name="mid" class="form-control" value="{{ member[0] }}" readonly>
+          {% else %}
+            <input type="text" name="mid" class="form-control" placeholder="Leave blank to auto-generate">
+          {% endif %}
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Name</label>
+          <input type="text" name="name" class="form-control" value="{{ member[1] if member else '' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Join Date (YYYY-MM-DD)</label>
+          <input type="date" name="joindate" class="form-control" value="{{ member[2] if member else '' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Type</label>
+          <select name="mtype" class="form-select" required>
+            {% set curtype = member[3] if member else 'Student' %}
+            <option value="Student" {% if curtype == 'Student' %}selected{% endif %}>Student</option>
+            <option value="Faculty" {% if curtype == 'Faculty' %}selected{% endif %}>Faculty</option>
+            <option value="Staff" {% if curtype == 'Staff' %}selected{% endif %}>Staff</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Mentor MID (optional)</label>
+          <input type="text" name="mentor" class="form-control" value="{{ member[4] if member else '' }}" placeholder="e.g. 1">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Major (if Student)</label>
+          <input type="text" name="major" class="form-control" value="{{ member[5] if member else '' }}" placeholder="Computer Science">
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit">
+          {% if mode == "edit" %} Save Changes {% else %} Add Member {% endif %}
+        </button>
+        <a href="{{ url_for('members') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

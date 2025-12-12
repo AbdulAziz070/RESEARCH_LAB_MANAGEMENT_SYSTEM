@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Equipment Usage</h2>
+  <a href="{{ url_for('add_uses') }}" class="btn btn-primary">
+    <i class="fa-solid fa-plus"></i> Add Usage
+  </a>
+</div>
+
+<table class="table table-striped table-hover">
+  <thead class="table-dark">
+    <tr>
+      <th>MID</th>
+      <th>Member</th>
+      <th>EID</th>
+      <th>Equipment</th>
+      <th>Start</th>
+      <th>End</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in uses %}
+    <tr>
+      <td>{{ u[0] }}</td>
+      <td>{{ u[1] }}</td>
+      <td>{{ u[2] }}</td>
+      <td>{{ u[3] }}</td>
+      <td>{{ u[4] }}</td>
+      <td>{{ u[5] if u[5] else '-' }}</td>
+      <td>
+        <a href="{{ url_for('edit_uses') }}?mid={{ u[0] }}&eid={{ u[2] }}&sdate={{ u[4] }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+        <form method="post" action="{{ url_for('delete_uses') }}" style="display:inline-block;">
+          <input type="hidden" name="mid" value="{{ u[0] }}">
+          <input type="hidden" name="eid" value="{{ u[2] }}">
+          <input type="hidden" name="sdate" value="{{ u[4] }}">
+          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

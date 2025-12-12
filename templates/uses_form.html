@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    {% if mode == "edit" and record %}
+      <h3 class="card-title">Edit Equipment Usage</h3>
+    {% else %}
+      <h3 class="card-title">Add Equipment Usage</h3>
+    {% endif %}
+
+    {# For add: route /uses/add ; For edit this page is usually rendered at /uses/edit?mid=..&eid=..&sdate=.. #}
+    {# We intentionally leave action empty so when editing the POST goes to the same URL with the query params preserved. #}
+    <form method="post" action="">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Member ID (MID)</label>
+          {% if mode == "edit" and record %}
+            <input type="text" name="mid" class="form-control" value="{{ record[0] }}" readonly>
+          {% else %}
+            <input type="text" name="mid" class="form-control" value="" required>
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Equipment ID (EID)</label>
+          {% if mode == "edit" and record %}
+            <input type="text" name="eid" class="form-control" value="{{ record[1] }}" readonly>
+          {% else %}
+            <input type="text" name="eid" class="form-control" value="{{ eid_prefill if eid_prefill else '' }}" required placeholder="e.g., 801">
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Start Date</label>
+          {% if mode == "edit" and record %}
+            <input type="date" name="sdate" class="form-control" value="{{ record[2] }}" required>
+          {% else %}
+            <input type="date" name="sdate" class="form-control" required>
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">End Date (optional)</label>
+          <input type="date" name="edate" class="form-control" value="{{ record[3] if record and record[3] else '' }}">
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-success" type="submit">{% if mode == "edit" %} Update Usage {% else %} Add Usage {% endif %}</button>
+        <a href="{{ url_for('uses_list') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center">
+  <h1 class="mb-4">Research Lab Manager</h1>
+  <p class="lead mb-4">Manage members, projects, equipment, and analytics from a clean web dashboard.</p>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fa-solid fa-users"></i> Members</h5>
+          <p class="card-text">Add, remove, and view lab members and their majors.</p>
+          <a href="{{ url_for('members') }}" class="btn btn-primary">Go to Members</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fa-solid fa-diagram-project"></i> Projects</h5>
+          <p class="card-text">Create projects and check their status at a glance.</p>
+          <a href="{{ url_for('projects') }}" class="btn btn-success">Go to Projects</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title"><i class="fa-solid fa-screwdriver-wrench"></i> Equipment</h5>
+          <p class="card-text">Track equipment status and see who is using it.</p>
+          <a href="{{ url_for('equipment') }}" class="btn btn-warning">Go to Equipment</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <a href="{{ url_for('reports') }}" class="btn btn-outline-dark">
+      <i class="fa-solid fa-chart-line"></i> View Analytics & Reports
+    </a>
+  </div>
+</div>
+{% endblock %}

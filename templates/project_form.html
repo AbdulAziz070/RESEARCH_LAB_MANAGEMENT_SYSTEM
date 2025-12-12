@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-title">
+      {% if project %} Edit Project {% else %} Add Project {% endif %}
+    </h3>
+
+    {# Add mode: POST to /projects/add ; Edit mode: POST to current URL /projects/edit/<pid> #}
+    <form method="post" action="">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Project ID (PID) — optional</label>
+          {% if project %}
+            <input type="text" name="pid" class="form-control" value="{{ project[0] }}" readonly>
+          {% else %}
+            <input type="text" name="pid" class="form-control" placeholder="Leave blank to auto-generate">
+          {% endif %}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Title</label>
+          <input type="text" name="title" class="form-control" value="{{ project[1] if project else '' }}" required>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Leader MID (optional)</label>
+          <input type="text" name="leader" class="form-control" value="{{ project[4] if project else '' }}" placeholder="Faculty MID">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Start Date</label>
+          <input type="date" name="sdate" class="form-control" value="{{ project[2] if project else '' }}" required>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">End Date (optional)</label>
+          <input type="date" name="edate" class="form-control" value="{{ project[3] if project and project[3] else '' }}">
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-success" type="submit">{% if project %} Update Project {% else %} Create Project {% endif %}</button>
+        <a href="{{ url_for('projects') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

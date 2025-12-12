@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Analytics & Reports</h2>
+
+<div class="row g-4 mt-2">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">🏆 Top Publisher</h5>
+        {% if top_publisher %}
+          <p class="card-text">
+            {{ top_publisher[0] }} with {{ top_publisher[1] }} publications.
+          </p>
+        {% else %}
+          <p>No publication data yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">📈 Avg Publications per Major</h5>
+        <table class="table table-sm">
+          <thead><tr><th>Major</th><th>Average Publications</th></tr></thead>
+          <tbody>
+          {% for row in avg_per_major %}
+            <tr><td>{{ row[0] }}</td><td>{{ "%.2f"|format(row[1]) }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4">
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Top 3 Members for a Grant</h5>
+        <form method="post">
+          <div class="input-group mb-3">
+            <input type="number" name="gid_for_top" class="form-control"
+                   placeholder="Grant ID (e.g., 1001)" required>
+            <button class="btn btn-outline-primary" type="submit">Show</button>
+          </div>
+        </form>
+        {% if top_for_grant %}
+          <ul class="list-group list-group-flush">
+            {% for row in top_for_grant %}
+              <li class="list-group-item">
+                {{ row[0] }} ({{ row[1] }} pubs)
+              </li>
+            {% endfor %}
+          </ul>
+        {% elif gid_for_top %}
+          <p>No publications found for that grant.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Active Projects by Grant & Date Range</h5>
+        <form method="post">
+          <div class="mb-2">
+            <label class="form-label">Grant ID</label>
+            <input type="number" name="gid_for_range" class="form-control"
+                   placeholder="1001" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start" class="form-control" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">End Date</label>
+            <input type="date" name="end" class="form-control" required>
+          </div>
+          <button class="btn btn-outline-success" type="submit">Find Projects</button>
+        </form>
+
+        {% if active_projects %}
+          <ul class="list-group list-group-flush mt-2">
+            {% for title in active_projects %}
+              <li class="list-group-item">{{ title }}</li>
+            {% endfor %}
+          </ul>
+        {% elif start and end %}
+          <p class="mt-2">No active projects in that range.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
