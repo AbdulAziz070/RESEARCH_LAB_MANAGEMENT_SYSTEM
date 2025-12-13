@@ -19,17 +19,14 @@ def get_connection():
         print(f"DB ERROR: {e}")
     return None
 
-
 # ------------------ FLASK APP ------------------
 app = Flask(__name__)
 app.secret_key = "some-secret-key-change-this"
-
 
 # ------------------ HOME ------------------
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 # ==============================
 #   PROJECT & MEMBER MANAGEMENT
@@ -55,13 +52,11 @@ def members():
     conn.close()
     return render_template("members.html", members=rows)
 
-
 # --- add member ---
 @app.route("/members/add", methods=["GET", "POST"])
 def add_member():
     if request.method == "POST":
-        # Accept MID optionally; if empty -> use AUTO_INCREMENT
-        mid = request.form.get("mid")  # may be '' or None
+        mid = request.form.get("mid")
         name = request.form.get("name")
         joindate = request.form.get("joindate")
         mtype = request.form.get("mtype")
@@ -76,23 +71,19 @@ def add_member():
         cur = conn.cursor()
         try:
             if mid and mid.strip() != "":
-                # explicit MID provided
                 cur.execute(
                     "INSERT INTO LAB_MEMBER (MID, Name, JoinDate, MType, Mentor) VALUES (%s, %s, %s, %s, %s)",
                     (mid, name, joindate, mtype, mentor),
                 )
                 created_id = mid
             else:
-                # let DB generate MID
                 cur.execute(
                     "INSERT INTO LAB_MEMBER (Name, JoinDate, MType, Mentor) VALUES (%s, %s, %s, %s)",
                     (name, joindate, mtype, mentor),
                 )
                 created_id = cur.lastrowid
 
-            # If the member is a student, maintain STUDENT table
             if mtype and mtype.lower() == "student" and major:
-                # use created_id to insert STUDENT row
                 cur.execute(
                     "INSERT INTO STUDENT (MID, Major) VALUES (%s, %s)",
                     (created_id, major),
@@ -109,7 +100,6 @@ def add_member():
         return redirect(url_for("members"))
 
     return render_template("member_form.html", mode="add")
-
 
 # --- edit member (GET/POST) ---
 @app.route("/members/edit/<int:mid>", methods=["GET", "POST"])
@@ -129,7 +119,6 @@ def edit_member(mid):
         try:
             cur.execute("UPDATE LAB_MEMBER SET Name=%s, JoinDate=%s, MType=%s, Mentor=%s WHERE MID=%s",
                         (name, joindate, mtype, mentor, mid))
-            # maintain STUDENT table
             if mtype and mtype.lower() == "student":
                 cur.execute("SELECT MID FROM STUDENT WHERE MID=%s", (mid,))
                 if cur.fetchone():
@@ -138,7 +127,6 @@ def edit_member(mid):
                     if major:
                         cur.execute("INSERT INTO STUDENT (MID, Major) VALUES (%s, %s)", (mid, major))
             else:
-                # if changed to non-student, remove STUDENT row if exists
                 cur.execute("DELETE FROM STUDENT WHERE MID=%s", (mid,))
             conn.commit()
             flash("Member updated ✅", "success")
@@ -150,7 +138,6 @@ def edit_member(mid):
             conn.close()
         return redirect(url_for("members"))
 
-    # GET
     cur.execute("SELECT L.MID, L.Name, L.JoinDate, L.MType, L.Mentor, S.Major FROM LAB_MEMBER L LEFT JOIN STUDENT S ON L.MID=S.MID WHERE L.MID=%s", (mid,))
     member = cur.fetchone()
     cur.close()
@@ -159,7 +146,6 @@ def edit_member(mid):
         flash("Member not found", "warning")
         return redirect(url_for("members"))
     return render_template("member_form.html", mode="edit", member=member)
-
 
 # --- remove member ---
 @app.route("/members/delete/<int:mid>", methods=["POST", "GET"])
@@ -186,10 +172,13 @@ def delete_member(mid):
         conn.close()
     return redirect(url_for("members"))
 
-
 # ==============================
 #        PROJECT ROUTES
 # ==============================
+
+import logging
+# optional: configure logging to stdout (helps in Windows console)
+logging.basicConfig(level=logging.INFO)
 
 # --- list projects + status ---
 @app.route("/projects")
@@ -283,7 +272,6 @@ def edit_project(pid):
             conn.close()
         return redirect(url_for("projects"))
 
-    # GET
     cur.execute("SELECT PID, Title, SDate, EDate, Leader FROM PROJECT WHERE PID=%s", (pid,))
     project = cur.fetchone()
     cur.close()
@@ -304,19 +292,21 @@ def delete_project(pid):
 
     cur = conn.cursor()
     try:
-        # remove dependent rows first
-        cur.execute("DELETE FROM FUNDS WHERE PID = %s", (pid,))
-        cur.execute("DELETE FROM WORKS WHERE PID = %s", (pid,))
-        cur.execute("DELETE FROM PUBLISHES WHERE PID = %s", (pid,))
         cur.execute("DELETE FROM PROJECT WHERE PID = %s", (pid,))
         conn.commit()
-        flash("Project deleted ✅", "success")
+
+        if cur.rowcount == 0:
+            flash("Project not found.", "warning")
+        else:
+            flash("Project deleted ✅", "success")
+
     except Error as e:
         conn.rollback()
         flash(f"Error deleting project: {e}", "danger")
     finally:
         cur.close()
         conn.close()
+
     return redirect(url_for("projects"))
 
 
@@ -324,16 +314,32 @@ def delete_project(pid):
 @app.route("/projects/status", methods=["POST"])
 def project_status():
     pid = request.form.get("pid")
+    if not pid:
+        flash("Please provide a project ID", "warning")
+        return redirect(url_for("projects"))
+
+    # convert to int safely
+    try:
+        pid_int = int(pid)
+    except (ValueError, TypeError):
+        flash("Invalid project ID", "danger")
+        return redirect(url_for("projects"))
+
     conn = get_connection()
     if not conn:
         flash("Database connection failed", "danger")
         return redirect(url_for("projects"))
 
     cur = conn.cursor()
-    cur.execute("SELECT Title, SDate, EDate FROM PROJECT WHERE PID = %s", (pid,))
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
+    try:
+        cur.execute("SELECT Title, SDate, EDate FROM PROJECT WHERE PID = %s", (pid_int,))
+        row = cur.fetchone()
+    except Error as e:
+        row = None
+        flash(f"Error fetching project status: {e}", "warning")
+    finally:
+        cur.close()
+        conn.close()
 
     if not row:
         flash("Project not found", "warning")
@@ -342,6 +348,7 @@ def project_status():
         status = "Active" if edate is None else f"Ended on {edate}"
         flash(f"{title} | Started {sdate} | Status: {status}", "info")
     return redirect(url_for("projects"))
+
 
 
 # ====================
@@ -356,13 +363,12 @@ def equipment():
         return redirect(url_for("index"))
 
     cur = conn.cursor()
-    # Select commonly used columns - adapt if your schema differs
-    cur.execute("SELECT EID, EType, EName, Status FROM EQUIPMENT ORDER BY EID")
+    # include Purpose and PDate so edit form can prefill them
+    cur.execute("SELECT EID, EName, EType, Status, PDate FROM EQUIPMENT ORDER BY EID")
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return render_template("equipment.html", equipment=rows)
-
 
 @app.route("/equipment/add", methods=["GET", "POST"])
 def add_equipment():
@@ -370,6 +376,17 @@ def add_equipment():
         eid = request.form.get("eid")
         name = request.form.get("name")
         etype = request.form.get("etype")
+        status = (request.form.get("status") or "Active").strip()
+        purpose = request.form.get("purpose")
+        
+
+        # canonicalize status
+        if status.lower() in {"maintenance", "under maintenance", "maint"}:
+            status = "Maintenance"
+        ALLOWED = {"Active", "Maintenance", "Retired"}
+        if status not in ALLOWED:
+            flash(f"Invalid status value: {status}. Allowed: {', '.join(ALLOWED)}", "danger")
+            return redirect(url_for("add_equipment"))
 
         conn = get_connection()
         if not conn:
@@ -380,19 +397,19 @@ def add_equipment():
         try:
             if eid and eid.strip() != "":
                 cur.execute(
-                    "INSERT INTO EQUIPMENT (EID, EName, EType, Status) VALUES (%s, %s, %s, 'Active')",
-                    (eid, name, etype),
+                    "INSERT INTO EQUIPMENT (EID, EName, EType, Status, Purpose, PDate) VALUES (%s, %s, %s, %s, %s, CURDATE())",
+                    (eid, name, etype, status, purpose),
                 )
                 created_eid = eid
             else:
                 cur.execute(
-                    "INSERT INTO EQUIPMENT (EName, EType, Status) VALUES (%s, %s, 'Active')",
-                    (name, etype),
+                    "INSERT INTO EQUIPMENT (EName, EType, Status, Purpose, PDate) VALUES (%s, %s, %s, %s, CURDATE())",
+                    (name, etype, status, purpose),
                 )
                 created_eid = cur.lastrowid
 
             conn.commit()
-            flash(f"Equipment added ✅ (EID: {created_eid})", "success")
+            flash(f"Equipment added ✅ (EID: {created_eid}, Status: {status})", "success")
         except Error as e:
             conn.rollback()
             flash(f"Error adding equipment: {e}", "danger")
@@ -403,10 +420,16 @@ def add_equipment():
 
     return render_template("equipment_form.html", mode="add")
 
-
 @app.route("/equipment/status/<int:eid>", methods=["POST"])
 def update_equipment_status(eid):
-    status = request.form.get("status")
+    status = (request.form.get("status") or "Active").strip()
+    if status.lower() in {"maintenance", "under maintenance", "maint"}:
+        status = "Maintenance"
+    ALLOWED = {"Active", "Maintenance", "Retired"}
+    if status not in ALLOWED:
+        flash(f"Invalid status value: {status}", "danger")
+        return redirect(url_for("equipment"))
+
     conn = get_connection()
     if not conn:
         flash("Database connection failed", "danger")
@@ -416,7 +439,7 @@ def update_equipment_status(eid):
     try:
         cur.execute("UPDATE EQUIPMENT SET Status = %s WHERE EID = %s", (status, eid))
         conn.commit()
-        flash("Status updated ✅", "success")
+        flash(f"Status updated to {status} ✅", "success")
     except Error as e:
         conn.rollback()
         flash(f"Error updating equipment: {e}", "danger")
@@ -424,7 +447,6 @@ def update_equipment_status(eid):
         cur.close()
         conn.close()
     return redirect(url_for("equipment"))
-
 
 @app.route("/equipment/delete/<int:eid>", methods=["POST"])
 def delete_equipment(eid):
@@ -435,9 +457,7 @@ def delete_equipment(eid):
 
     cur = conn.cursor()
     try:
-        # Remove usage rows first (foreign key safety)
         cur.execute("DELETE FROM USES WHERE EID = %s", (eid,))
-        # Then remove the equipment
         cur.execute("DELETE FROM EQUIPMENT WHERE EID = %s", (eid,))
         conn.commit()
         flash("Equipment deleted ✅", "success")
@@ -449,7 +469,6 @@ def delete_equipment(eid):
         conn.close()
 
     return redirect(url_for("equipment"))
-
 
 @app.route("/equipment/active_users", methods=["POST"])
 def equipment_active_users():
@@ -479,14 +498,12 @@ def equipment_active_users():
             flash(f"{name} (Project: {title})", "info")
     return redirect(url_for("equipment"))
 
-
 # ==========================
 #   USES (Equipment Usage) CRUD
 # ==========================
 
 @app.route("/uses")
 def uses_list():
-    # optional filter by equipment id
     eid_filter = request.args.get("eid")
     conn = get_connection()
     if not conn:
@@ -494,14 +511,14 @@ def uses_list():
         return redirect(url_for("index"))
     cur = conn.cursor()
     if eid_filter:
-        cur.execute("""SELECT U.MID, L.Name, U.EID, E.EName, U.SDate, U.EDate
+        cur.execute("""SELECT U.MID, L.Name, U.EID, E.EName, U.SDate, U.EDate, U.Purpose
                        FROM USES U
                        JOIN LAB_MEMBER L ON U.MID=L.MID
                        JOIN EQUIPMENT E ON U.EID=E.EID
                        WHERE U.EID=%s
                        ORDER BY U.SDate DESC""", (eid_filter,))
     else:
-        cur.execute("""SELECT U.MID, L.Name, U.EID, E.EName, U.SDate, U.EDate
+        cur.execute("""SELECT U.MID, L.Name, U.EID, E.EName, U.SDate, U.EDate, U.Purpose
                        FROM USES U
                        JOIN LAB_MEMBER L ON U.MID=L.MID
                        JOIN EQUIPMENT E ON U.EID=E.EID
@@ -511,7 +528,6 @@ def uses_list():
     conn.close()
     return render_template("uses_list.html", uses=rows)
 
-
 @app.route("/uses/add", methods=["GET", "POST"])
 def add_uses():
     if request.method == "POST":
@@ -519,6 +535,7 @@ def add_uses():
         eid = request.form.get("eid")
         sdate = request.form.get("sdate")
         edate = request.form.get("edate") or None
+        purpose = (request.form.get("purpose") or None)
 
         conn = get_connection()
         if not conn:
@@ -526,7 +543,7 @@ def add_uses():
             return redirect(url_for("uses_list"))
         cur = conn.cursor()
         try:
-            cur.execute("INSERT INTO USES (MID, EID, SDate, EDate) VALUES (%s,%s,%s,%s)", (mid, eid, sdate, edate))
+            cur.execute("INSERT INTO USES (MID, EID, SDate, EDate, Purpose) VALUES (%s,%s,%s,%s,%s)", (mid, eid, sdate, edate, purpose))
             conn.commit()
             flash("Usage added ✅", "success")
         except Error as e:
@@ -536,18 +553,15 @@ def add_uses():
             cur.close()
             conn.close()
         return redirect(url_for("uses_list"))
-    # GET
-    # allow prefill of eid via query param
     eid_prefill = request.args.get("eid")
     return render_template("uses_form.html", mode="add", record=None, eid_prefill=eid_prefill)
 
-
 @app.route("/uses/edit", methods=["GET", "POST"])
 def edit_uses():
-    # identify record by query params: ?mid=..&eid=..&sdate=..
     mid = request.args.get("mid")
     eid = request.args.get("eid")
     sdate = request.args.get("sdate")
+    purpose = (request.args.get("purpose") or None)
     if not (mid and eid and sdate):
         flash("Missing parameters to edit usage.", "warning")
         return redirect(url_for("uses_list"))
@@ -561,15 +575,15 @@ def edit_uses():
     if request.method == "POST":
         new_sdate = request.form.get("sdate")
         new_edate = request.form.get("edate") or None
+        purpose = (request.form.get("purpose") or None)
         try:
-            # if start date changed (PK), delete old and insert new
             if new_sdate != sdate:
                 cur.execute("DELETE FROM USES WHERE MID=%s AND EID=%s AND SDate=%s", (mid, eid, sdate))
-                cur.execute("INSERT INTO USES (MID, EID, SDate, EDate) VALUES (%s,%s,%s,%s)",
-                            (mid, eid, new_sdate, new_edate))
+                cur.execute("INSERT INTO USES (MID, EID, SDate, EDate, Purpose) VALUES (%s,%s,%s,%s,%s)",
+                            (mid, eid, new_sdate, new_edate, purpose))
             else:
-                cur.execute("UPDATE USES SET EDate=%s WHERE MID=%s AND EID=%s AND SDate=%s",
-                            (new_edate, mid, eid, sdate))
+                cur.execute("UPDATE USES SET EDate=%s, Purpose=%s WHERE MID=%s AND EID=%s AND SDate=%s",
+                            (new_edate, purpose, mid, eid, sdate))
             conn.commit()
             flash("Usage updated ✅", "success")
         except Error as e:
@@ -580,8 +594,7 @@ def edit_uses():
             conn.close()
         return redirect(url_for("uses_list"))
 
-    # GET: fetch record
-    cur.execute("SELECT MID, EID, SDate, EDate FROM USES WHERE MID=%s AND EID=%s AND SDate=%s", (mid, eid, sdate))
+    cur.execute("SELECT MID, EID, SDate, EDate, Purpose FROM USES WHERE MID=%s AND EID=%s AND SDate=%s", (mid, eid, sdate))
     record = cur.fetchone()
     cur.close()
     conn.close()
@@ -589,7 +602,6 @@ def edit_uses():
         flash("Usage record not found.", "warning")
         return redirect(url_for("uses_list"))
     return render_template("uses_form.html", mode="edit", record=record)
-
 
 @app.route("/uses/delete", methods=["POST"])
 def delete_uses():
@@ -617,7 +629,6 @@ def delete_uses():
         conn.close()
     return redirect(url_for("uses_list"))
 
-
 # ==========================
 #   REPORTS & ANALYTICS
 # ==========================
@@ -639,7 +650,6 @@ def reports():
     cur = conn.cursor()
 
     # 1. Member with highest publications
-    # Adjusted to use your PUBLICATION / PUBLISHES schema: join PUBLISHES -> PUBLICATION.
     try:
         cur.execute("""
             SELECT M.Name, COUNT(PB.PubID) as C
@@ -651,7 +661,6 @@ def reports():
         """)
         ctx["top_publisher"] = cur.fetchone()
     except Error:
-        # fallback in case column names differ
         try:
             cur.execute("""
                 SELECT M.Name, COUNT(*) as C
@@ -677,7 +686,6 @@ def reports():
         """)
         ctx["avg_per_major"] = cur.fetchall()
     except Error:
-        # simpler fallback if PUBLICATION naming differs
         try:
             cur.execute("""
                 SELECT S.Major, COUNT(Pub.MID) / COUNT(DISTINCT S.MID) as avg_pub
@@ -690,7 +698,6 @@ def reports():
             ctx["avg_per_major"] = []
             flash(f"Report query error (avg per major): {e}", "warning")
 
-    # Handle POST-only reports needing input (grant, date range)
     gid = None
     start = None
     end = None
@@ -700,7 +707,6 @@ def reports():
         start = request.form.get("start")
         end = request.form.get("end")
 
-        # 3. Top 3 prolific members for a grant
         if gid:
             try:
                 cur.execute("""
@@ -721,7 +727,6 @@ def reports():
                 ctx["top_for_grant"] = []
                 flash(f"Report query error (top for grant): {e}", "warning")
 
-        # 4. Active projects by grant & date range
         if gid_range and start and end:
             try:
                 cur.execute("""
@@ -742,6 +747,130 @@ def reports():
     conn.close()
     return render_template("reports.html", **ctx)
 
+
+# ==============================
+#      PUBLICATIONS MODULE
+# ==============================
+
+@app.route("/publications")
+def publications():
+    conn = get_connection()
+    if not conn:
+        flash("Database connection failed", "danger")
+        return redirect(url_for("index"))
+
+    cur = conn.cursor()
+    # Fetch publications. 
+    # Optional: You could JOIN with PUBLISHES to show author names, 
+    # but keeping it simple for the 'quick' fix.
+    cur.execute("SELECT PubID, Title, Venue, Date, DOI FROM PUBLICATION ORDER BY Date DESC")
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return render_template("publications.html", publications=rows)
+
+@app.route("/publications/add", methods=["GET", "POST"])
+def add_publication():
+    if request.method == "POST":
+        title = request.form.get("title")
+        venue = request.form.get("venue")
+        pdate = request.form.get("date")
+        doi = request.form.get("doi") or None
+        # We capture one author to satisfy the constraint that every pub has an author
+        primary_mid = request.form.get("mid") 
+
+        conn = get_connection()
+        if not conn:
+            flash("Database connection failed", "danger")
+            return redirect(url_for("publications"))
+
+        cur = conn.cursor()
+        try:
+            # 1. Insert Publication
+            cur.execute(
+                "INSERT INTO PUBLICATION (Title, Venue, Date, DOI) VALUES (%s, %s, %s, %s)",
+                (title, venue, pdate, doi)
+            )
+            new_pubid = cur.lastrowid
+
+            # 2. Link to Primary Author (Required by your Schema logic)
+            if primary_mid and primary_mid.strip():
+                cur.execute(
+                    "INSERT INTO PUBLISHES (MID, PubID, SDate, Purpose) VALUES (%s, %s, %s, 'Primary Author')",
+                    (primary_mid, new_pubid, pdate)
+                )
+
+            conn.commit()
+            flash(f"Publication added ✅ (PubID: {new_pubid})", "success")
+        except Error as e:
+            conn.rollback()
+            flash(f"Error adding publication: {e}", "danger")
+        finally:
+            cur.close()
+            conn.close()
+        return redirect(url_for("publications"))
+
+    return render_template("publication_form.html", mode="add")
+
+@app.route("/publications/edit/<int:pubid>", methods=["GET", "POST"])
+def edit_publication(pubid):
+    conn = get_connection()
+    if not conn:
+        flash("Database connection failed", "danger")
+        return redirect(url_for("publications"))
+
+    cur = conn.cursor()
+    if request.method == "POST":
+        title = request.form.get("title")
+        venue = request.form.get("venue")
+        pdate = request.form.get("date")
+        doi = request.form.get("doi") or None
+        try:
+            cur.execute(
+                "UPDATE PUBLICATION SET Title=%s, Venue=%s, Date=%s, DOI=%s WHERE PubID=%s",
+                (title, venue, pdate, doi, pubid)
+            )
+            conn.commit()
+            flash("Publication updated ✅", "success")
+        except Error as e:
+            conn.rollback()
+            flash(f"Error updating publication: {e}", "danger")
+        finally:
+            cur.close()
+            conn.close()
+        return redirect(url_for("publications"))
+
+    # GET
+    cur.execute("SELECT PubID, Title, Venue, Date, DOI FROM PUBLICATION WHERE PubID=%s", (pubid,))
+    pub = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    if not pub:
+        flash("Publication not found", "warning")
+        return redirect(url_for("publications"))
+        
+    return render_template("publication_form.html", mode="edit", pub=pub)
+
+@app.route("/publications/delete/<int:pubid>", methods=["POST"])
+def delete_publication(pubid):
+    conn = get_connection()
+    if not conn:
+        return redirect(url_for("publications"))
+
+    cur = conn.cursor()
+    try:
+        # ON DELETE CASCADE in your schema handles the PUBLISHES links automatically
+        cur.execute("DELETE FROM PUBLICATION WHERE PubID = %s", (pubid,))
+        conn.commit()
+        flash("Publication deleted ✅", "success")
+    except Error as e:
+        conn.rollback()
+        flash(f"Error deleting publication: {e}", "danger")
+    finally:
+        cur.close()
+        conn.close()
+    return redirect(url_for("publications"))
 
 if __name__ == "__main__":
     app.run(debug=True)

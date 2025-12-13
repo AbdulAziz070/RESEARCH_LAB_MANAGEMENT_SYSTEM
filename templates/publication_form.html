@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h3 class="card-title">
+      {% if mode == "edit" %} Edit Publication {% else %} Add Publication {% endif %}
+    </h3>
+
+    <form method="post" action="" class="mt-3">
+      <div class="row g-3">
+        
+        <div class="col-md-2">
+          <label class="form-label">PubID</label>
+          <input type="text" class="form-control" value="{{ pub[0] if pub else 'Auto' }}" readonly>
+        </div>
+
+        <div class="col-md-10">
+          <label class="form-label">Title</label>
+          <input type="text" name="title" class="form-control" value="{{ pub[1] if pub else '' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Venue</label>
+          <input type="text" name="venue" class="form-control" value="{{ pub[2] if pub else '' }}" required placeholder="e.g. IEEE Robotics">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Publication Date</label>
+          <input type="date" name="date" class="form-control" value="{{ pub[3] if pub else '' }}" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">DOI (Optional)</label>
+          <input type="text" name="doi" class="form-control" value="{{ pub[4] if pub else '' }}" placeholder="10.1109/...">
+        </div>
+
+        {% if mode == "add" %}
+        <div class="col-md-4">
+          <label class="form-label">Primary Author MID</label>
+          <input type="number" name="mid" class="form-control" required placeholder="e.g. 1">
+          <small class="text-muted">Required to link this paper to a lab member.</small>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <div class="mt-4">
+        <button class="btn btn-success" type="submit">
+          {% if mode == "edit" %} Update {% else %} Create {% endif %}
+        </button>
+        <a href="{{ url_for('publications') }}" class="btn btn-secondary ms-2">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
